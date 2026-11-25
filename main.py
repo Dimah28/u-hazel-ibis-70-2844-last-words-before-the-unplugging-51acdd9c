@@ -23,8 +23,8 @@ def validate_last_words(text):
     """Validate one entry line; return it unchanged or raise ValueError.
 
     Rejects empty or whitespace-only text, anything that is not exactly
-    one line, leading/trailing whitespace, control characters, and text
-    longer than MAX_CHARS characters.
+    one line, leading/trailing whitespace, control characters (including
+    DEL), and text longer than MAX_CHARS characters.
     """
     if not isinstance(text, str):
         raise ValueError("entry must be a string, got %s" % type(text).__name__)
@@ -34,7 +34,7 @@ def validate_last_words(text):
         raise ValueError("entry must not have leading or trailing whitespace")
     if text.splitlines() != [text]:
         raise ValueError("entry must be exactly one line")
-    if any(ord(ch) < 0x20 for ch in text):
+    if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in text):
         raise ValueError("entry must not contain control characters")
     if len(text) > MAX_CHARS:
         raise ValueError(
@@ -44,6 +44,15 @@ def validate_last_words(text):
     return text
 
 
+def write_entry(text, out_dir):
+    """Write validated text to entry.txt inside out_dir; return the path."""
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, "entry.txt")
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        handle.write(text)
+    return path
+
+
 def main():
     try:
         text = validate_last_words(TEXT)
@@ -51,10 +60,7 @@ def main():
         print("error: %s" % exc, file=sys.stderr)
         return 1
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
-    os.makedirs(out_dir, exist_ok=True)
-    path = os.path.join(out_dir, "entry.txt")
-    with open(path, "w", encoding="utf-8", newline="") as handle:
-        handle.write(text)
+    write_entry(text, out_dir)
     return 0
 
 
