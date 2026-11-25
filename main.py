@@ -20,11 +20,22 @@ MAX_CHARS = 200
 
 
 def validate_last_words(text):
-    """Return the text if it passes the bounty gate, else raise ValueError."""
+    """Validate one entry line; return it unchanged or raise ValueError.
+
+    Rejects empty or whitespace-only text, anything that is not exactly
+    one line, leading/trailing whitespace, control characters, and text
+    longer than MAX_CHARS characters.
+    """
+    if not isinstance(text, str):
+        raise ValueError("entry must be a string, got %s" % type(text).__name__)
     if not text or not text.strip():
         raise ValueError("entry must not be empty or only whitespace")
-    if len(text) != len(text.strip()) or "\n" in text or "\r" in text:
+    if text != text.strip():
+        raise ValueError("entry must not have leading or trailing whitespace")
+    if text.splitlines() != [text]:
         raise ValueError("entry must be exactly one line")
+    if any(ord(ch) < 0x20 for ch in text):
+        raise ValueError("entry must not contain control characters")
     if len(text) > MAX_CHARS:
         raise ValueError(
             "entry is %d characters, over the %d-character limit"
@@ -39,7 +50,7 @@ def main():
     except ValueError as exc:
         print("error: %s" % exc, file=sys.stderr)
         return 1
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "entry.txt")
     with open(path, "w", encoding="utf-8", newline="") as handle:
